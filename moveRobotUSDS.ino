@@ -88,6 +88,9 @@ float getDistance()
   long duration = pulseIn(ECHO_PIN, HIGH);
   return (float)duration / 29 / 2;
 }
+
+int lastTurn = 0;
+
 void loop()
 {
     matrix_display(move);
@@ -97,54 +100,91 @@ void loop()
     float distance = getDistance();
     Serial.print("Front: ");
     Serial.println(distance);
-    if (distance <= 30)
-    {
-        stop();
-        
-        servo.write(110);
-        delay(300);
-        float distanceLeft = getDistance();
-        Serial.print("Left: ");
-        Serial.println(distanceLeft);
-
-        servo.write(0);
-        delay(300);
-        float distanceRight = getDistance();
-        Serial.print("Right: ");
-        Serial.println(distanceRight);
-
-        servo.write(47);
-        
-        if (distanceRight > distanceLeft && distanceRight > 30)
-        {
-            Serial.print("Decision: RIGHT");
-            right();
-            delay(1000);
-        }
-        else if (distanceLeft > distanceRight && distanceLeft > 30)
-        {
-            Serial.print("Decision: LEFT");
-            left();
-            delay(1000);
-        }
-        else if (distanceLeft < 30 && distanceRight < 30)
-        {
-          Serial.print("Decision: TURN_AROUND");
-          right();
-          delay(1500);
-        }
-        else if (abs(distanceRight - distanceLeft) < 3 && distanceRight > 30 && distanceLeft > 30)
-        {
-            Serial.print("Decision: RIGHT");
-            right();
-            delay(1000);
-        }
-        stop();
-    }
-    else
+    if (distance > 30)
     {
         forw();
+        return;
     }
+
+    stop();
+
+    servo.write(110);
+    delay(300);
+    float distanceLeft = getDistance();
+
+    Serial.print("Left: ");
+    Serial.println(distanceLeft);
+
+    servo.write(0);
+    delay(300);
+    float distanceRight = getDistance();
+
+    Serial.print("Right: ");
+    Serial.println(distanceRight);
+
+    servo.write(47);
+    delay(100);
+
+    Serial.print("Decision: ");
+    
+    if (distanceLeft <= 30 && distanceRight <= 30)
+    {
+        Serial.println("TURN AROUND");
+
+        right();
+        delay(1500);
+        stop();
+
+        lastTurn = 2;
+    }
+
+    else if (distanceRight > distanceLeft + 3)
+    {
+        Serial.println("RIGHT");
+
+        right();
+        delay(1000);
+        stop();
+
+        lastTurn = 2;
+    }
+
+    else if (distanceLeft > distanceRight + 3)
+    {
+        Serial.println("LEFT");
+
+        left();
+        delay(1000);
+        stop();
+
+        lastTurn = 1;
+    }
+
+    else
+    {
+        if (lastTurn == 1)
+        {
+            Serial.println("EQUAL -> LEFT");
+
+            left();
+            delay(1000);
+            stop();
+
+            lastTurn = 1;
+        }
+        else
+        {
+            Serial.println("EQUAL -> RIGHT");
+
+            right();
+            delay(1000);
+            stop();
+
+            lastTurn = 2;
+        }
+    }
+
+    delay(100);
 }
 
 void matrix_display(unsigned char matrix_value[])
